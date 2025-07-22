@@ -1,0 +1,618 @@
+---
+title: "3_QAQC"
+author: "Spencer Womble"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+# QAQC & Data Cleaning in R
+
+### Load packages and data
+
+The "p_load" argument in the "pacman" package will load all requested packages and install them if they are not already. The "here" package is a file import helper package. R can be finicky sometimes when importing files. The here::here() function constructs file paths starting from the root of your R project, not from the current working directory.
+
+```{r}
+
+# install the pacman package if not already installed
+# install.packages("pacman")
+
+pacman::p_load(tidyverse, lubridate, here, janitor)
+
+
+# load data
+fishery_data<- read.csv(
+  here::here("data", "georgia_reservoir_fish_survey.csv")
+  )
+
+
+```
+
+# Step 1: Check data types
+
+First, we need to check the structure of our data to see if the columns are the classes we expect. All columns should be characters except for count, latitude, and longitude. These columns should be either numeric or integer since they should only include numbers
+
+```{r}
+
+
+str(fishery_data)
+```
+
+We can quickly see that there are some inconsistencies in our data frame. All the columns are characters and the species name structures are inconsistent. We will start by converting our date column to a date class.
+
+## Convert `sampling_date` to date class
+
+First, let's convert `sampling_date` to a date class column
+
+```{r}
+
+
+fishery_data<- fishery_data %>% 
+  mutate(sampling_date = as.Date(sampling_date))
+
+
+# check the structure
+str(fishery_data)
+```
+
+## Converting count data to a number
+
+We need to find out why the count data is not a number. By default, R will classify columns with whole numbers as integers and numbers with decimals as numeric. When this doesn't happen, the most likely reason is there is text in the column.
+
+The main two issues you'll likely encounter when a numeric or integer column are read as a character column are the presence of character strings and blank cells. We will check the "count" column for both.
+
+```{r}
+
+# check for character strings in the count column
+non_numeric_rows_df <- fishery_data %>%
+  dplyr::filter(is.na(as.numeric(count)) & !is.na(count))
+
+
+cat("Character strings for rows with non-numeric count values:\n")
+print(non_numeric_rows_df$count)
+
+
+```
+
+This code filters the fishery_data to keep only the rows where the count column contains non-numeric but non-missing values (i.e., we're not worried about cells where count = NA).
+
+-   The `is.na(as.numeric(count))` part of the code tries to convert all values in the "count" row into a numeric class. If a cell has a non-numeric value like "none", the conversion fails and R returns an NA for that row.
+
+-   `!is.na(count)` removes all rows where the value for "count" is a true NA.
+
+-   After trying to convert "count" to numeric and removing true NAs, the data is filtered to return only the rows where the value for "count" was not numeric or a true NA
+
+-   The warning is telling you that the non-numeric values have been converted to NA. That is okay at this step as we're just trying to identify the non-numeric rows.
+
+Now, let's see what all the unique non-numeric values in "count" look like.
+
+```{r}
+
+unique(non_numeric_rows_df$count)
+
+```
+
+All the non-numeric values (except the blanks) indicate a count of zero. This means we can replace all the character strings with zero. We will replace all blank cells with NA since we don't know if the count was zero of if there was no sampling for that species.
+
+```{r}
+
+# copy the fishery_data to create a working data frame
+working_df<- fishery_data
+
+
+# convert all character strings to zero and all blanks to NA
+working_df <- working_df %>%
+  dplyr::mutate(
+    count = dplyr::case_when(
+      count %in% c("none", "nothing caught") ~ "0",  # Convert known strings to "0"
+      count == "" ~ NA_character_,  # Explicitly set blanks to NA
+      TRUE ~ count # leave all other values alone
+    ),
+    count = as.numeric(count)  # Convert to numeric
+  )
+
+# check that there are no more character strings
+is.character(working_df$count)
+
+which(working_df$count == "") # check for blanks
+
+```
+
+# Step 2: Check species column for errors
+
+## Plotting the data
+
+Plotting the data at this stage can give us a good idea of if there are errors in the species names and if there are any outlier values. We couldn't check for outlier values very efficiently until we converted `count` from a character to numeric class.
+
+```{r}
+
+# plot the count data
+working_df %>%
+  ggplot(aes(species, count))+
+  geom_col()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+        )
+
+
+```
+
+We can see several issues in this plot. There are multiple species names that are incorrect. There is also very likely a typo in the count data for *Micropterus salmoides* given how high the count is compared to the other
+
+### Correcting outlier count value
+
+Let's first deal with the outlier value. We can check which row(s) have the highest values using a combination of `filter()`, `slice_max()`, and `row_number`. This code works by
+
+1.  Creating an `original_row` column that houses the row number for each observation in the `working_df` data frame.
+2.  Filtering the species to only include *Micropterus salmoides* **and** rows that are not NA. NAs can cause problems when using `slice()` functions.
+3.  Subsetting the data to include the top 5 max values for *Micropterus salmoides*. The `n` in `slice_max()` tells R how many observations to return, arranged in descending order.
+
+```{r}
+
+
+working_df %>%
+  dplyr::mutate(original_row = dplyr::row_number()) %>%
+  dplyr::filter(species == "Micropterus salmoides" & !is.na(count)) %>%
+  slice_max(count, n = 5) %>%
+  dplyr::select(site_id, sampling_date, count, original_row)
+
+
+```
+
+The culprit is a count for *Micropterus salmoides* at Lake_Lanier_A on 2023-01-15 and is row 9 in the original `working_df`.
+
+In a real-world scenario, deciding what to do with the erroneous value will require a combination of knowledge of the ecosystem and professional judgement. However, let's assume for this exercise that the 199 was a typo, and the person entering the data meant to type 19. We can manually change the count value for only this row. We'll use an `ifelse` statement and `row_number` to make these changes. This is how it works:
+
+-   `row_number()` tells R that we're operating row-wise rather than down the length of the columns (the default)
+
+-   `== 9, 19, count` are the instructions to `ifelse` for how to identify which row to change (`== 9`) and what the new value should be (`19`).The `count` part tells R to leave all other rows as they are
+
+-   The code can be read like this: *If* the row number is 9, make the `count` value 19, otherwise do not change the value for `count`.
+
+```{r}
+
+# replace erroneous value with 14
+working_df <- working_df %>%
+  mutate(count = ifelse(row_number() == 9, 19, count))
+
+
+# now check the output
+working_df %>%
+  filter(row_number() == 9) %>%
+  pull(count)
+
+# the count for row 5 have been update to 14
+```
+
+```{r}
+
+# Check the unique values for the species names
+unique(working_df$species)
+
+
+```
+
+We can see that there are a lot of issues with the species names! Some genera are not capitalized, common names are listed instead of scientific name, and there are some misspellings.
+
+First, we'll make all the names lowercase and replace any spaces with "\_". This solves any naming disparities related specifically to capitalization.
+
+```{r}
+
+# make all names lowercase and remove spaces
+working_df<- working_df %>%
+  mutate(species = tolower(species),
+         species = str_replace(species, pattern = " ", replacement = "_")
+         )
+
+# check the change
+unique(working_df$species)
+
+```
+
+Next, we need a way to identify the incorrect names and replace them with the correct ones. We can do this by mapping the incorrect names to their correct ones. This process can be tedious, but necessary. Large language models can be extremely helpful for these types of issues as they can generate the code quickly.
+
+First, create a reference table with the correct scientific and common names. We need both because there are scientific and common names in our `working_df` data frame.
+
+```{r}
+
+# First create a reference table with all species names
+species_ref_table <- data.frame(
+  common_name = c("largemouth_bass", "bluegill", 
+                  "black_crappie", "common_carp", 
+                  "striped_bass", "channel_catfish",
+                  "gizzard_shad"
+                  ),
+  scientific_name = c("micropterus_salmoides", "lepomis_macrochirus", 
+                      "pomoxis_nigromaculatus","cyprinus_carpio", 
+                      "morone_saxatilis", "ictalurus_punctatus",
+                      "dorosoma_cepedianum"
+                     ),
+  stringsAsFactors = FALSE # we want to keep them as characters
+  )
+
+
+```
+
+Now find which species names are **not** in the reference table. This gives us the incorrect names that we need to map to the correct names.
+
+```{r}
+
+working_df %>% 
+  dplyr::filter(!species %in% species_ref_table$scientific_name) %>% 
+  distinct(species)
+
+```
+
+This is the tedious part. We need to create a vector of the incorrect names and their corresponding correct names. There are multiple ways to do this, and none of them short, but the method below is one of the more concise options.
+
+```{r}
+
+# create a vector mapping the incorrect names to what the names should be
+species_map <- c(
+  "bluegill" = "lepomis_macrochirus",
+  "lepomis" = "lepomis_macrochirus", 
+  "lepomis_machrochirus" = "lepomis_macrochirus",
+  "largemouth_bass" = "micropterus_salmoides",
+  "micropterus_salmonides" = "micropterus_salmoides",
+  "micropterus" = "micropterus_salmoides",
+  "black_crappie" = "pomoxis_nigromaculatus",
+  "pomoxis" = "pomoxis_nigromaculatus",
+  "gizzard_shad" = "dorosoma_cepedianum",
+  "channel_catfish" = "ictalurus_punctatus"
+)
+
+```
+
+We will now overwrite the old species column with a new one using the mapped species names. Here's how the code works:
+
+The `coalesce()` function takes multiple arguments and returns the first non-missing (non-NA) value from left to right for each row. ``` species_map``[species] ``` performs a lookup using the current `species` values as keys in a named vector called `species_map`. The `coalesce(species_map[species], species)` code is telling R to "use the mapped value if it exists (isn't NA), otherwise fall back to the original species value."
+
+```{r}
+
+# apply the mapping to the species list in your working_df
+working_df <- working_df %>%
+  mutate(species = coalesce(species_map[species], species))
+
+
+# check that there are no more erroneous species names
+working_df %>% 
+  dplyr::filter(!species %in% species_ref_table$scientific_name) %>%
+  distinct(species)
+
+# Zero rows returned, meaning all the names have been corrected
+
+# we can also check the unique names in the data
+unique(working_df$species)
+```
+
+# Step 3: Check for duplicate observations
+
+Checking for duplicate observations when your data have date or datetime information is easy with the `get_dupes` function in the `janitor` package. However, we have multiple observations per date because multiple sites at a single reservoir were sampled on the same day. We will need to account for this by supplying multiple grouping variables checking for duplicates.
+
+```{r}
+
+working_df %>%
+  janitor::get_dupes(sampling_date, site_id)
+```
+
+5 of the 10 observations returned appear to be duplicates. The values in "count" for each duplicate are identical, meaning these are *probably* true duplicates and we can just omit one. This can be done using the `group_by()` and `slice()` functions. We will use `slice_head` since these are true duplicates, but know that there are many varieties of the `slice()` function. `slice_head()` retains the first observations it encounters. By providing a grouping structure using `group_by()` **before** slicing, we are telling R "for each unique sampling_date and site_id combination, retain the first observation. Beware that this can get more complicated if you have multiple observations that are not duplicates but have the same grouping structure (e.g., multiple observations recorded on the same date at the same site).
+
+**If you are not sure which observation is the duplicate, it is usually safest to randomly select one. This can be done using** `slice_sample()`
+
+```{r}
+
+working_df<- working_df %>%
+  group_by(sampling_date, site_id) %>% # group by sampling date and site_id again
+  slice_head() %>% 
+  ungroup() # always ungroup!!
+
+# check again for duplicates
+working_df %>%
+  get_dupes(sampling_date, site_id)
+```
+
+# Step 4: Saving the Data
+
+### RDS vs CSV
+
+We often don't want to overwrite the original CSV file, and having multiple version of a CSV can become confusing quickly. An alternative to saving R objects as a CSV is to save them as an RDS file. RDS stands for "R Data Serialization". While CSVs can only store tabular data, RDS can store any object including data frame, lists, plots, and models. RDS files are also often smaller and load faster than CSV files. Working from RDS files ensures that you never accidentally overwrite the original CSV file and is easier to manage when exporting intermediate results like calculations or summary statistics.
+
+```{r}
+
+# save as RDS
+saveRDS(working_df, "yourFilePath.RDS")
+
+
+# save as CSV if desired
+write.csv(working_df, "yourDataPath.csv")
+
+
+```
+
+# Exercises
+
+All exercises will use the `fisheries2` dataset. This dataset is essentially another iteration of `fishery_data` only without any species name errors. All the information and code needed to solve these exercises is provided throughout the tutorial.
+
+### Problem 1
+
+Use the "here" package to import the `fisheries2` dataset.
+
+```{r}
+
+fisheries2<- read.csv(here::here("____", "____.csv"))
+
+# check the structure of fisheries2
+str(fisheries2)
+
+```
+
+### Problem 2
+
+Replace the blank cells in the `count` column of `fisheries2` with `NA`
+
+```{r}
+
+no_count_blanks_df<- fisheries2 %>%
+  mutate(count = case_when(
+    _____ ~ ______,
+    TRUE ~ count
+  ))
+
+
+# check your results - this should return a 0-length data frame if you successfully removed the blanks
+no_count_blanks_df %>%
+  dplyr::filter(count == "")
+```
+
+### Problem 3
+
+Find the character strings present in the `weight` column of `fisheries2`. Then, convert all cells with that character string to NA. Update your fisheries2 data frame with your new results.
+
+```{r}
+# find the character strings
+weight_strings_df<- fisheries2 %>%
+  dplyr::filter(
+    is.na(______(weight)
+          )
+    ) %>%
+  pull(weight)
+
+cat("These are the non-numeric strings in the weight column")
+print(weight_strings_df)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# now replace these strings with NA and convert the weight column to numeric
+weight_numeric_df<- fisheries2 %>%
+  dplyr::mutate(
+    weight = dplyr::case_when(
+      ______ == "_________" ~ _________,
+      TRUE ~ weight # leave all other values alone
+    ),
+    weight = _____(weight)  # Convert to numeric
+  )
+
+# check that weight is a numeric column now - the class should now say "numeric"
+class(weight_numeric_df$weight)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# update your fisheries2 data frame
+fisheries2<- weight_numeric_df
+
+```
+
+### Problem 4
+
+Using this plot, identify which species in `weight` have an erroneous value. Then, choose one of the species with a weight error, identify which row has the erroneous value, and replace the value with NA.
+
+```{r}
+
+# plot the count data
+fisheries2 %>%
+  ggplot(aes(species, weight))+
+  geom_col()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+        )
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# find the rows with erroneous value
+fisheries2 %>%
+  dplyr::mutate(original_row = dplyr::row_number()) %>%
+  dplyr::filter(______ == "________" & !is.na(weight)) %>%
+  slice_max(______, n = 5) %>%
+  dplyr::select(weight, original_row)
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# replace the erroneous weight value with NA
+fisheries2 <- fisheries2 %>%
+  mutate(weight = ifelse(row_number() == _____, NA, ______))
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# now check the output 
+fisheries2 %>%
+  dlplyr::filter(row_number() == ____)
+
+
+
+```
+
+### Problem 5
+
+Find duplicate observations in the fisheries2 dataset and delete one of the duplicates from each set of duplicates. Think carefully about the grouping structure you will need to use.
+
+```{r}
+
+# identify the duplicates
+fisheries2 %>%
+  janitor::______(____, ____)
+
+
+# remove the duplicates
+fisheries2<- fisheries2 %>%
+  group_by(_____, ______) %>%
+  slice_head() %>% 
+  ungroup() # always ungroup!!
+
+
+# check that the duplicates were removed
+fisheries2 %>%
+  get_dupes(_____, _____)
+
+```
+
+## Solutions
+
+Problem 1 Solution
+
+```{r}
+
+
+fisheries2<- read.csv(here::here("data", "fisheries2.csv"))
+```
+
+Problem 2 - Solution
+
+```{r}
+
+no_count_blanks_df<- fisheries2 %>%
+  mutate(count = case_when(
+    count == "" ~ NA_character_,
+    TRUE ~ count
+  ))
+
+
+# check your results
+no_count_blanks_df %>%
+  dplyr::filter(count == "")
+```
+
+Problem 3 - Solution
+
+```{r}
+
+# find the character strings
+weight_strings_df<- fisheries2 %>%
+  dplyr::filter(
+    is.na(as.numeric(weight)
+          )
+    ) %>%
+  pull(weight)
+
+cat("These are the non-numeric strings in the weight column")
+print(weight_strings_df)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# now replace these strings with NA and convert the weight column to numeric
+weight_numeric_df<- fisheries2 %>%
+  dplyr::mutate(
+    weight = dplyr::case_when(
+      weight == "no weight recorded" ~ NA_character_,
+      TRUE ~ weight # leave all other values alone
+    ),
+    weight = as.numeric(weight)  # Convert to numeric
+  )
+
+# check that weight is a numeric column now
+class(weight_numeric_df$weight)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# update your fisheries2 data frame
+fisheries2<- weight_numeric_df
+```
+
+Problem 4 Solution
+
+```{r}
+
+# plot the count data
+fisheries2 %>%
+  ggplot(aes(species, weight))+
+  geom_col()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+        )
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# find the rows with erroneous values
+fisheries2 %>%
+  dplyr::mutate(original_row = dplyr::row_number()) %>%
+  dplyr::filter(species == "Pomoxis nigromaculatus" & !is.na(weight)) %>%
+  slice_max(weight, n = 5) %>%
+  dplyr::select(weight, original_row)
+
+
+# OR
+
+fisheries2 %>%
+  dplyr::mutate(original_row = dplyr::row_number()) %>%
+  dplyr::filter(species == "Lepomis macrochirus" & !is.na(weight)) %>%
+  slice_max(weight, n = 5) %>%
+  dplyr::select(weight, original_row)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# replace the erroneous values with NA - for Pomoxis nigromaculatus
+fisheries2 <- fisheries2 %>%
+  mutate(weight = ifelse(row_number() == 4, NA, weight))
+
+
+# replace the erroneous values with NA - for Lepomis machrochirus
+fisheries2 <- fisheries2 %>%
+  mutate(weight = ifelse(row_number() == 50, NA, weight))
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# now check the output - for Pomoxis nigromaculatus
+fisheries2 %>%
+  filter(row_number() == 4)
+
+
+# now check the output - for Lepomis machrochirus
+fisheries2 %>%
+  filter(row_number() == 50)
+
+```
+
+Problem 5 Solution
+
+```{r}
+
+# identify the duplicates
+fisheries2 %>%
+  janitor::get_dupes(sampling_date, site_id)
+
+
+# remove the duplicate observations
+fisheries2<- fisheries2 %>%
+  group_by(sampling_date, site_id) %>% # group by sampling date and site_id again
+  slice_head() %>% 
+  ungroup() # always ungroup!!
+
+# check again for duplicates
+fisheries2 %>%
+  get_dupes(sampling_date, site_id)
+```

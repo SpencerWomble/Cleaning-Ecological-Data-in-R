@@ -1,0 +1,55 @@
+"","site_id","sampling_date","species","gear_type","count","weight","latitude","longitude"
+"1","West_Point_A",2023-09-15,"Morone saxatilis","Gillnet_4inch","0","7.58",32.8796,-85.1174
+"2","Lake_Hartwell_A",2023-07-22,"Micropterus salmoides","Gillnet_3inch","2","1.32",34.3969,-82.9375
+"3","West_Point_A",2023-01-15,"Lepomis macrochirus","Gillnet_2inch","nothing caught","3.04",32.8796,-85.1174
+"4","Sinclair_A",2023-02-15,"Pomoxis nigromaculatus","Electrofishing","none","3400",33.1234,-84.1234
+"5","Clarks_Hill_A",2023-05-15,"Pomoxis nigromaculatus","Gillnet_4inch","15","3.14",33.6598,-82.1971
+"6","Lake_Hartwell_A",2023-04-15,"Cyprinus carpio","Gillnet_3inch","","4.14",34.3969,-82.9375
+"7","West_Point_A",2023-03-15,"Ictalurus punctatus","Electrofishing","25","8.36",32.8796,-85.1174
+"8","Lake_Hartwell_B",2023-08-15,"Micropterus salmoides","Electrofishing","none","4.47",34.3887,-82.9298
+"9","Sinclair_A",2023-03-15,"Micropterus salmoides","Electrofishing","none","5.12",33.1234,-84.1234
+"10","Lake_Hartwell_A",2023-07-15,"Pomoxis nigromaculatus","Gillnet_2inch","14","6.38",34.3969,-82.9375
+"11","Lake_Hartwell_B",2023-01-15,"Micropterus salmoides","Gillnet_3inch","11","2.07",34.3887,-82.9298
+"12","Sinclair_A",2023-04-15,"Lepomis macrochirus","Gillnet_2inch",NA,"1.62",33.1234,-84.1234
+"13","Lake_Hartwell_A",2023-05-15,"Morone saxatilis","Gillnet_2inch","0","4.14",34.3969,-82.9375
+"14","Sinclair_A",2023-09-15,"Ictalurus punctatus","Electrofishing","22","5.04",33.1234,-84.1234
+"15","Sinclair_A",2023-01-15,"Lepomis macrochirus","Gillnet_3inch","14","8.33",33.1234,-84.1234
+"16","Lake_Hartwell_B",2023-02-15,"Lepomis macrochirus","Gillnet_2inch","21","3.68",34.3887,-82.9298
+"17","West_Point_A",2023-08-15,"Cyprinus carpio","Gillnet_3inch",NA,"1.32",32.8796,-85.1174
+"18","Lake_Hartwell_B",2023-04-15,"Lepomis macrochirus","Gillnet_3inch","15","1.53",34.3887,-82.9298
+"19","Sinclair_A",2023-05-15,"Micropterus salmoides","Gillnet_4inch","14","8.39",33.1234,-84.1234
+"20","Sinclair_A",2023-10-15,"Ictalurus punctatus","Gillnet_3inch","5","3.04",33.1234,-84.1234
+"21","Lake_Hartwell_B",2023-05-15,"Ictalurus punctatus","Gillnet_4inch","155","4.97",34.3887,-82.9298
+"22","West_Point_A",2023-05-15,"Micropterus salmoides","Gillnet_4inch","0","5.81",32.8796,-85.1174
+"23","Clarks_Hill_A",2023-02-15,"Morone saxatilis","Gillnet_2inch",NA,"6.92",33.6598,-82.1971
+"24","Sinclair_A",2023-07-15,"Micropterus salmoides","Gillnet_3inch","none","4.14",33.1234,-84.1234
+"25","Lake_Hartwell_B",2023-05-15,"Ictalurus punctatus","Gillnet_4inch","none","4.97",34.3887,-82.9298
+"26","Sinclair_A",2023-08-15,"Lepomis macrochirus","Gillnet_4inch","3","4.14",33.1234,-84.1234
+"27","Sinclair_A",2023-06-15,"Lepomis macrochirus","Electrofishing","5","3.75",33.1234,-84.1234
+"28","Lake_Hartwell_B",2023-03-15,"Micropterus salmoides","Gillnet_4inch","8","4.44",34.3887,-82.9298
+"29","West_Point_A",2023-10-15,"Micropterus salmoides","Gillnet_2inch","15","7.8",32.8796,-85.1174
+"30","Clarks_Hill_A",2023-06-15,"Micropterus salmoides","Gillnet_2inch",NA,"no weight recorded",33.6598,-82.1971
+"31","Lake_Hartwell_B",2023-06-15,"Ictalurus punctatus","Gillnet_4inch","21","6.03",34.3887,-82.9298
+"32","West_Point_A",2023-04-15,"Ictalurus punctatus","Gillnet_3inch","none","5.04",32.8796,-85.1174
+"33","Lake_Hartwell_B",2023-09-15,"Lepomis macrochirus","Gillnet_3inch","19","4.44",34.3887,-82.9298
+"34","Lake_Hartwell_B",2023-07-15,"Ictalurus punctatus","Gillnet_4inch","none","1.71",34.3887,-82.9298
+"35","Clarks_Hill_A",2023-07-29,"Micropterus salmoides","Gillnet_2inch","none","4.44",33.6598,-82.1971
+"36","Lake_Hartwell_A",2023-02-15,"Lepomis macrochirus","Gillnet_2inch","1","3.68",34.3969,-82.9375
+"37","Lake_Hartwell_A",2023-03-15,"Pomoxis nigromaculatus","Gillnet_4inch","21","6.92",34.3969,-82.9375
+"38","Clarks_Hill_A",2023-01-15,"Cyprinus carpio","Gillnet_2inch","nothing caught","4.73",33.6598,-82.1971
+"39","Lake_Hartwell_A",2023-01-15,"Micropterus salmoides","Gillnet_2inch","22","5.81",34.3969,-82.9375
+"40","West_Point_A",2023-07-15,"Pomoxis nigromaculatus","Electrofishing","none","1.05",32.8796,-85.1174
+"41","Clarks_Hill_A",2023-04-15,"Lepomis macrochirus","Gillnet_3inch","nothing caught","8.39",33.6598,-82.1971
+"42","Lake_Hartwell_A",2023-06-15,"Micropterus salmoides","Electrofishing","15","no weight recorded",34.3969,-82.9375
+"43","West_Point_A",2023-02-15,"Ictalurus punctatus","Gillnet_3inch","nothing caught","1.62",32.8796,-85.1174
+"44","West_Point_A",2023-05-15,"Micropterus salmoides","Gillnet_4inch","0","5.81",32.8796,-85.1174
+"45","Lake_Hartwell_A",2023-07-15,"Pomoxis nigromaculatus","Gillnet_2inch","14","6.38",34.3969,-82.9375
+"46","Clarks_Hill_A",2023-07-15,"Micropterus salmoides","Gillnet_3inch","1","7.91",33.6598,-82.1971
+"47","Clarks_Hill_A",2023-07-22,"Lepomis macrochirus","Electrofishing","none","5.81",33.6598,-82.1971
+"48","Clarks_Hill_A",2023-05-15,"Pomoxis nigromaculatus","Gillnet_4inch","15","3.14",33.6598,-82.1971
+"49","Lake_Hartwell_B",2023-10-15,"Pomoxis nigromaculatus","Gillnet_3inch","2","7.99",34.3887,-82.9298
+"50","Clarks_Hill_A",2023-07-08,"Lepomis macrochirus","Gillnet_2inch","2","8920",33.6598,-82.1971
+"51","Clarks_Hill_A",2023-03-15,"Micropterus salmoides","Electrofishing","8","no weight recorded",33.6598,-82.1971
+"52","West_Point_A",2023-06-15,"Lepomis macrochirus","Electrofishing","15","3.68",32.8796,-85.1174
+"53","Lake_Hartwell_A",2023-07-29,"Lepomis macrochirus","Gillnet_4inch","0","3.68",34.3969,-82.9375
+"54","Lake_Hartwell_A",2023-07-08,"Lepomis macrochirus","Gillnet_4inch","15","4.44",34.3969,-82.9375
